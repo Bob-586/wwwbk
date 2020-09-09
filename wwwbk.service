@@ -1,0 +1,13 @@
+[Unit]
+Description=WWW Backup service
+After=network.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=www-data
+ExecStart=/usr/local/bin/wwwbk
+
+[Install]
+WantedBy=multi-user.target
