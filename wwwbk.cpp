@@ -82,17 +82,24 @@ void erase_sub_string ( std::string &mainStr, const std::string &toErase ) {
 }
 
 void get_date_and_time ( char* date_time_str ) {
-	time_t curr_time;
-	tm * curr_tm;
+    time_t curr_time;
+    tm * curr_tm;
 	
-	time(&curr_time);
-	curr_tm = localtime(&curr_time);
+    time(&curr_time);
+    curr_tm = localtime(&curr_time);
 	
-	strftime(date_time_str, 50, "%m-%d-%Y %T", curr_tm);
+    strftime(date_time_str, 50, "%m-%d-%Y %T", curr_tm);
 }
 
 bool found_script ( std::string path ) {
-	std::string php (".php"); // Backup PHP Files
+	
+    std::string swap (".swp"); // Temp Swap file
+    std::size_t found_swap = path.find(swap);
+	
+    std::string backup ("~"); // Backup file
+    std::size_t found_backup = path.find(backup);
+	
+    std::string php (".php"); // Backup PHP Files
     std::size_t found_php = path.find(php);
 
     std::string js (".js"); // Backup JavaScript Files
@@ -100,19 +107,24 @@ bool found_script ( std::string path ) {
 
     std::string ts (".ts"); // Backup TypeScript Files
     std::size_t found_ts = path.find(ts);
+    
+    if ( found_swap != std::string::npos || found_backup != std::string::npos ) {
+	return false; // Skip Swap/Locks and Backup Files
+    }
 
-	if (found_php != std::string::npos || found_js != std::string::npos || found_ts != std::string::npos) {
-		return true;
-	} else {
-		return false;
-	}	
+    if ( found_php != std::string::npos || found_js != std::string::npos || found_ts != std::string::npos ) {
+	return true;
+    } else {
+	return false;
+    }	
+	
 }
 
 std::string get_save_folder ( std::string org_path ) {
-	char date_time_string[100];
+    char date_time_string[100];
     get_date_and_time(date_time_string);    
 
-	std::string base_filename = org_path.substr(org_path.find_last_of("/") + 1); // Get FileName from path
+    std::string base_filename = org_path.substr(org_path.find_last_of("/") + 1); // Get FileName from path
     
     erase_sub_string(org_path, web_folder + "/"); // Remove ROOT folder from path
     
@@ -121,24 +133,24 @@ std::string get_save_folder ( std::string org_path ) {
     std::string temp_save_path = org_path.substr(0, org_path.find_last_of("/"));
     std::size_t length_of_save_path = temp_save_path.length();
 	
-	std::string save_folder = "";
+    std::string save_folder = "";
 	
-	if (length_of_save_path == 0) {
-		save_folder = web_backup_folder + "/" + date_time_string + base_filename;
-	} else {
-		std::string my_folder = web_backup_folder + "/" + temp_save_path;
-		const char *new_folder = my_folder.c_str();
+    if (length_of_save_path == 0) {
+	save_folder = web_backup_folder + "/" + date_time_string + base_filename;
+    } else {
+	std::string my_folder = web_backup_folder + "/" + temp_save_path;
+	const char *new_folder = my_folder.c_str();
 		
-		make_new_dir_path(new_folder, 0775); // Make new Folder
-		
-		save_folder = web_backup_folder + "/" + temp_save_path + "/" + date_time_string + base_filename;
-	}
-	return save_folder;
+	make_new_dir_path(new_folder, 0775); // Make new Folder
+	
+	save_folder = web_backup_folder + "/" + temp_save_path + "/" + date_time_string + base_filename;
+    }
+    return save_folder;
 }	
 
 int main() {
 		
-	std::cout << "Watching for changes on www \n";
+    std::cout << "Watching for changes on www \n";
 	
     // Create a FileWatcher instance that will check the current folder for changes every 5 seconds
     FileWatcher fw { web_folder, std::chrono::milliseconds(5000) };
@@ -151,36 +163,36 @@ int main() {
             return;
         }
             
-    std::string web_save_path = get_save_folder(path_watch);
-    std::string str_cmd = "cp '" + path_watch + "' '" +  web_save_path + "'"; 
-     
-    // Convert string to const char * as system requires, parameter of type const char * 
-    // const char *command = str_cmd.c_str();     
-        
-        switch(status) {
-            case FileStatus::created:
-				if ( found_script(path_watch) ) {	
-					std::cout << "File created: " << path_watch << '\n';
-					std::cout << str_cmd << "\n";
-					// system(command);
-					copy_file( path_watch.c_str(), web_save_path.c_str() );
-				}
-				break;
-            case FileStatus::modified:
-                if ( found_script(path_watch) ) {	
-					std::cout << "File modified: " << path_watch << '\n';
-					std::cout << str_cmd << "\n";
-					// system(command);
-					copy_file( path_watch.c_str(), web_save_path.c_str() );
-				}
-                break;
-            case FileStatus::erased:
-                //std::cout << "File erased: " << path_watch << '\n';
-                break;
-            default:
-                //std::cout << "Error! Unknown file status.\n";
-                break;
-        }
+        std::string web_save_path = get_save_folder(path_watch);
+        std::string str_cmd = "cp '" + path_watch + "' '" +  web_save_path + "'"; 
+
+        // Convert string to const char * as system requires, parameter of type const char * 
+        // const char *command = str_cmd.c_str();     
+
+            switch(status) {
+                case FileStatus::created:
+                    if ( found_script(path_watch) ) {	
+                        std::cout << "File created: " << path_watch << '\n';
+                        std::cout << str_cmd << "\n";
+                        // system(command);
+                        copy_file( path_watch.c_str(), web_save_path.c_str() );
+                    }
+                    break;
+                case FileStatus::modified:
+                    if ( found_script(path_watch) ) {	
+                        std::cout << "File modified: " << path_watch << '\n';
+                        std::cout << str_cmd << "\n";
+                        // system(command);
+                        copy_file( path_watch.c_str(), web_save_path.c_str() );
+                    }
+                    break;
+                case FileStatus::erased:
+                    //std::cout << "File erased: " << path_watch << '\n';
+                    break;
+                default:
+                    //std::cout << "Error! Unknown file status.\n";
+                    break;
+            }
     }); // end of lambda function
     
     return 0; // Success to OS
