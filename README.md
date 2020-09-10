@@ -8,11 +8,14 @@ git clone https://github.com/Bob-586/wwwbk.git ~/wwwbk
 $ cd ~/wwwbk
 ## Then Compile the program :
 $ chmod u+x compile_me.sh
+
 $ ./compile_me.sh
 
 ### Create the Backup Folder
 $ sudo mkdir /var/www_backups
+
 $ sudo chown $USER:www-data /var/www_backups
+
 $ sudo chmod 775 /var/www_backups
 
 ## To RUN :
