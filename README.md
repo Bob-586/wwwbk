@@ -7,6 +7,7 @@ git clone https://github.com/Bob-586/wwwbk.git ~/wwwbk
 ## Goto folder of program :
 $ cd ~/wwwbk
 ## Then Compile the program :
+$ chmod u+x compile_me.sh
 $ ./compile_me.sh
 
 ## To RUN :
