@@ -49,7 +49,7 @@ void copy_file ( const char* srce_file, const char* dest_file ) {
     dest << srce.rdbuf() ;
 }
 
-int make_new_dir_path ( std::string s, mode_t mode ) {
+int make_new_dir_from_path ( std::string s, mode_t mode ) {
     size_t pos=0;
     std::string dir;
     int mdret;
@@ -120,7 +120,7 @@ bool found_script ( std::string path ) {
 	
 }
 
-std::string get_save_folder ( std::string org_path ) {
+std::string get_backup_path_and_filename ( std::string org_path ) {
     char date_time_string[100];
     get_date_and_time(date_time_string);    
 
@@ -133,67 +133,63 @@ std::string get_save_folder ( std::string org_path ) {
     std::string temp_save_path = org_path.substr(0, org_path.find_last_of("/"));
     std::size_t length_of_save_path = temp_save_path.length();
 	
-    std::string save_folder = "";
+    std::string save_file = "";
 	
     if (length_of_save_path == 0) {
-	save_folder = web_backup_folder + "/" + date_time_string + base_filename;
+	save_file = web_backup_folder + "/" + date_time_string + base_filename;
     } else {
 	std::string my_folder = web_backup_folder + "/" + temp_save_path;
 	const char *new_folder = my_folder.c_str();
 		
-	make_new_dir_path(new_folder, 0775); // Make new Folder
+	make_new_dir_from_path(new_folder, 0775);
 	
-	save_folder = web_backup_folder + "/" + temp_save_path + "/" + date_time_string + base_filename;
+	save_file = web_backup_folder + "/" + temp_save_path + "/" + date_time_string + base_filename;
     }
-    return save_folder;
+    return save_file;
 }	
+
+void do_auto_backup( std::string path_watch, FileStatus status ) {
+    std::string backup_to = get_backup_path_and_filename(path_watch);
+    std::string str_cmd = "Auto-Backed-Up to: '" +  backup_to + "'"; 
+
+    switch(status) {
+        case FileStatus::created:
+            if ( found_script(path_watch) ) {	
+                std::cout << "File created: " << path_watch << '\n';
+                std::cout << str_cmd << "\n";
+                copy_file( path_watch.c_str(), backup_to.c_str() );
+            }
+            break;
+        case FileStatus::modified:
+            if ( found_script(path_watch) ) {	
+                std::cout << "File modified: " << path_watch << '\n';
+                std::cout << str_cmd << "\n";
+                copy_file( path_watch.c_str(), backup_to.c_str() );
+            }
+            break;
+        case FileStatus::erased: // Keep to avoid compile errors
+            break; 
+    }
+}
 
 int main() {
 		
-    std::cout << "Watching for changes on www \n";
+    std::cout << "Watching for changes on " << web_folder << "\n\n";
 	
     // Create a FileWatcher instance that will check the current folder for changes every 5 seconds
     FileWatcher fw { web_folder, std::chrono::milliseconds(5000) };
 
     // Start monitoring a folder for changes and (in case of changes)
     // run a user provided lambda function
-    fw.start( [] (std::string path_watch, FileStatus status ) -> void {
+    fw.start( [] (std::string path_and_file_watch, FileStatus f_status ) -> void {
         // Process only regular files, all other file types are ignored
-        if(!std::filesystem::is_regular_file(std::filesystem::path(path_watch)) && status != FileStatus::erased) {
+        if(!std::filesystem::is_regular_file(std::filesystem::path(path_and_file_watch)) && f_status != FileStatus::erased) {
             return;
         }
-            
-        std::string web_save_path = get_save_folder(path_watch);
-        std::string str_cmd = "cp '" + path_watch + "' '" +  web_save_path + "'"; 
 
-        // Convert string to const char * as system requires, parameter of type const char * 
-        // const char *command = str_cmd.c_str();     
+        do_auto_backup( path_and_file_watch, f_status );
 
-            switch(status) {
-                case FileStatus::created:
-                    if ( found_script(path_watch) ) {	
-                        std::cout << "File created: " << path_watch << '\n';
-                        std::cout << str_cmd << "\n";
-                        // system(command);
-                        copy_file( path_watch.c_str(), web_save_path.c_str() );
-                    }
-                    break;
-                case FileStatus::modified:
-                    if ( found_script(path_watch) ) {	
-                        std::cout << "File modified: " << path_watch << '\n';
-                        std::cout << str_cmd << "\n";
-                        // system(command);
-                        copy_file( path_watch.c_str(), web_save_path.c_str() );
-                    }
-                    break;
-                case FileStatus::erased:
-                    //std::cout << "File erased: " << path_watch << '\n';
-                    break;
-                default:
-                    //std::cout << "Error! Unknown file status.\n";
-                    break;
-            }
-    }); // end of lambda function
+    });
     
     return 0; // Success to OS
 }
