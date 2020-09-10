@@ -1,8 +1,10 @@
 # wwwbk for Linux
 Backup the /var/www folders (all JavaScript, TypeScript, and PHP code) into /var/www_backups folders...
 
+Run as regular user, not as root!
+
 ### Download:
-git clone https://github.com/Bob-586/wwwbk.git ~/wwwbk
+$ git clone https://github.com/Bob-586/wwwbk.git ~/wwwbk
 
 ## Goto folder of program :
 $ cd ~/wwwbk
